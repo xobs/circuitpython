@@ -190,6 +190,7 @@ SRC_C = \
 	main.c \
 	moduos.c \
 	mphalport.c \
+	reset.c \
 	samd21_pins.c \
 	shared_dma.c \
 	rgb_led_status.c \
