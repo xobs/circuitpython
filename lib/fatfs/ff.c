@@ -4054,7 +4054,8 @@ FRESULT f_forward (
 FRESULT f_mkfs (
 	const TCHAR* path,	/* Logical drive number */
 	BYTE sfd,			/* Partitioning rule 0:FDISK, 1:SFD */
-	UINT au				/* Size of allocation unit in unit of byte or sector */
+	UINT au,				/* Size of allocation unit in unit of byte or sector */
+	DWORD volume_id
 )
 {
 	static const WORD vst[] = { 1024,   512,  256,  128,   64,    32,   16,    8,    4,    2,   0};
@@ -4218,7 +4219,7 @@ FRESULT f_mkfs (
 	ST_DWORD(tbl + BPB_HiddSec, b_vol);		/* Hidden sectors */
 	n = GET_FATTIME();						/* Use current time as VSN */
 	if (fmt == FS_FAT32) {
-		ST_DWORD(tbl + BS_VolID32, n);		/* VSN */
+		ST_DWORD(tbl + BS_VolID32, volume_id);		/* VSN */
 		ST_DWORD(tbl + BPB_FATSz32, n_fat);	/* Number of sectors per FAT */
 		ST_DWORD(tbl + BPB_RootClus, 2);	/* Root directory start cluster (2) */
 		ST_WORD(tbl + BPB_FSInfo, 1);		/* FSINFO record offset (VBR + 1) */
@@ -4227,7 +4228,7 @@ FRESULT f_mkfs (
 		tbl[BS_BootSig32] = 0x29;			/* Extended boot signature */
 		mem_cpy(tbl + BS_VolLab32, "NO NAME    " "FAT32   ", 19);	/* Volume label, FAT signature */
 	} else {
-		ST_DWORD(tbl + BS_VolID, n);		/* VSN */
+		ST_DWORD(tbl + BS_VolID, volume_id);		/* VSN */
 		ST_WORD(tbl + BPB_FATSz16, n_fat);	/* Number of sectors per FAT */
 		tbl[BS_DrvNum] = 0x80;				/* Drive number */
 		tbl[BS_BootSig] = 0x29;				/* Extended boot signature */

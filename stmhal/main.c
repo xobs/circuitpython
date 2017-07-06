@@ -187,7 +187,8 @@ MP_NOINLINE STATIC void init_flash_fs(uint reset_mode) {
         led_state(PYB_LED_R2, 1);
         uint32_t start_tick = HAL_GetTick();
 
-        res = f_mkfs("/flash", 0, 0);
+        // TODO(tannewt): Provide a volume id thats based on the MCU id.
+        res = f_mkfs("/flash", 0, 0, 0x12345678);
         if (res == FR_OK) {
             // success creating fresh LFS
         } else {

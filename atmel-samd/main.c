@@ -95,7 +95,15 @@ void init_flash_fs(void) {
     if (res == FR_NO_FILESYSTEM) {
         // no filesystem so create a fresh one
 
-        res = f_mkfs("/flash", 0, 0);
+        // XOR the serial number together to create a 32-bit id.
+        uint32_t volume_id = 0;
+        uint32_t* addresses[4] = {(uint32_t *) 0x0080A00C, (uint32_t *) 0x0080A040,
+                                  (uint32_t *) 0x0080A044, (uint32_t *) 0x0080A048};
+        for (int i = 0; i < 4; i++) {
+            volume_id ^= *(addresses[i]);
+        }
+
+        res = f_mkfs("/flash", 0, 0, volume_id);
         // Flush the new file system to make sure its repaired immediately.
         flash_flush();
         if (res != FR_OK) {

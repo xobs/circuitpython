@@ -122,7 +122,7 @@ fs_user_mount_t *fatfs_mount_mkfs(mp_uint_t n_args, const mp_obj_t *pos_args, mp
             }
         } else if (res == FR_NO_FILESYSTEM && args[1].u_bool) {
 mkfs:
-            res = f_mkfs(vfs->str, 1, 0);
+            res = f_mkfs(vfs->str, 1, 0, 0x12345678);
             if (res != FR_OK) {
 mkfs_error:
                 MP_STATE_PORT(fs_user_mount)[i] = NULL;
