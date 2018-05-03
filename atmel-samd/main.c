@@ -66,6 +66,7 @@
 
 #include "autoreload.h"
 #include "flash_api.h"
+#include "main.h"
 #include "mpconfigboard.h"
 #include "rgb_led_status.h"
 #include "shared_dma.h"
@@ -110,7 +111,7 @@ void do_str(const char *src, mp_parse_input_kind_t input_kind) {
 
 // we don't make this function static because it needs a lot of stack and we
 // want it to be executed without using stack within main() function
-void init_flash_fs(bool create_allowed) {
+void init_flash_fs(bool create_allowed, bool force_create) {
     // init the vfs object
     fs_user_mount_t *vfs_fat = &fs_user_mount_flash;
     vfs_fat->flags = 0;
@@ -119,8 +120,8 @@ void init_flash_fs(bool create_allowed) {
     // try to mount the flash
     FRESULT res = f_mount(&vfs_fat->fatfs);
 
-    if (res == FR_NO_FILESYSTEM && create_allowed) {
-        // no filesystem so create a fresh one
+    if ((res == FR_NO_FILESYSTEM && create_allowed) || force_create) {
+        // No filesystem so create a fresh one, or reformat has been requested.
 
         // Wait two seconds before creating. Jittery power might
         // fail before we're ready. This can happen if someone
@@ -129,10 +130,10 @@ void init_flash_fs(bool create_allowed) {
 
         // Then try one more time to mount the flash in case it was late coming up.
         res = f_mount(&vfs_fat->fatfs);
-        if (res == FR_NO_FILESYSTEM) {
+        if (res == FR_NO_FILESYSTEM || force_create) {
             uint8_t working_buf[_MAX_SS];
             res = f_mkfs(&vfs_fat->fatfs, FM_FAT, 0, working_buf, sizeof(working_buf));
-            // Flush the new file system to make sure its repaired immediately.
+            // Flush the new file system to make sure it's repaired immediately.
             flash_flush();
             if (res != FR_OK) {
                 return;
@@ -528,6 +529,14 @@ void load_serial_number(void) {
 extern uint32_t _ezero;
 
 safe_mode_t samd21_init(void) {
+
+    // Set brownout detection to ~2.7V. Default from factory is 1.7V,
+    // which is too low for proper operation of external SPI flash chips (they are 2.7-3.6V).
+    // Disable while changing level.
+    SYSCTRL->BOD33.bit.ENABLE = 0;
+    SYSCTRL->BOD33.bit.LEVEL = 39;  // 2.77V with hysteresis off. Table 37.20 in datasheet.
+    SYSCTRL->BOD33.bit.ENABLE = 1;
+
 #ifdef ENABLE_MICRO_TRACE_BUFFER
     REG_MTB_POSITION = ((uint32_t) (mtb - REG_MTB_BASE)) & 0xFFFFFFF8;
     REG_MTB_FLOW = (((uint32_t) mtb - REG_MTB_BASE) + TRACE_BUFFER_SIZE_BYTES) & 0xFFFFFFF8;
@@ -683,9 +692,9 @@ int main(void) {
     // Create a new filesystem only if we're not in a safe mode.
     // A power brownout here could make it appear as if there's
     // no SPI flash filesystem, and we might erase the existing one.
-    init_flash_fs(safe_mode == NO_SAFE_MODE);
+    init_flash_fs(safe_mode == NO_SAFE_MODE, false);
 
-    // Reset everything and prep MicroPython to run boot.py.
+    // Reset everything and prep to run boot.py.
     reset_samd21();
     reset_board();
     reset_mp();
@@ -694,38 +703,83 @@ int main(void) {
     autoreload_enable();
 
     // By default our internal flash is readonly to local python code and
-    // writeable over USB. Set it here so that boot.py can change it.
+    // writable over USB.
     flash_set_usb_writeable(true);
 
     // If not in safe mode, run boot before initing USB and capture output in a
     // file.
     if (safe_mode == NO_SAFE_MODE && MP_STATE_VM(vfs_mount_table) != NULL) {
         new_status_color(BOOT_RUNNING);
+
+        // Run the first of these files found at boot time (if any).
+        static char const* BOOT_PY_FILENAMES[] = {
+            "settings.txt",
+            "settings.py",
+            "boot.py",
+            "boot.txt",
+        };
+
+        // Check for existance of any of the BOOT_PY_FILENAMES.
+        char const* boot_py_to_use = NULL;
+        for (size_t i = 0; i < MP_ARRAY_SIZE(BOOT_PY_FILENAMES); i++) {
+            if (mp_import_stat(BOOT_PY_FILENAMES[i]) == MP_IMPORT_STAT_FILE) {
+                boot_py_to_use = BOOT_PY_FILENAMES[i];
+                break;
+            }
+        }
+
         #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
-        // Since USB isn't up yet we can cheat and let ourselves write the boot
-        // output file.
-        flash_set_usb_writeable(false);
         FIL file_pointer;
         boot_output_file = &file_pointer;
-        f_open(&((fs_user_mount_t *) MP_STATE_VM(vfs_mount_table)->obj)->fatfs,
-            boot_output_file, CIRCUITPY_BOOT_OUTPUT_FILE, FA_WRITE | FA_CREATE_ALWAYS);
-        flash_set_usb_writeable(true);
-        // Write version info to boot_out.txt.
-        mp_hal_stdout_tx_str(MICROPY_FULL_VERSION_INFO);
-        mp_hal_stdout_tx_str("\r\n");
+
+        // Get the base filesystem.
+        FATFS *fs = &((fs_user_mount_t *) MP_STATE_VM(vfs_mount_table)->obj)->fatfs;
+
+        char file_contents[512];
+        UINT chars_read = 0;
+        bool skip_boot_output = false;
+
+        // If there's no boot.py file that might write some changing output,
+        // read the existing copy of CIRCUITPY_BOOT_OUTPUT_FILE and see if its contents
+        // match the version info we would print anyway. If so, skip writing CIRCUITPY_BOOT_OUTPUT_FILE.
+        // This saves wear and tear on the flash and also prevents filesystem damage if power is lost
+        // during the write, which may happen due to bobbling the power connector or weak power.
+
+        if (!boot_py_to_use && f_open(fs, boot_output_file, CIRCUITPY_BOOT_OUTPUT_FILE, FA_READ) == FR_OK) {
+            f_read(boot_output_file, file_contents, 512, &chars_read);
+            f_close(boot_output_file);
+            skip_boot_output =
+                // + 2 accounts for  \r\n.
+                chars_read == strlen(MICROPY_FULL_VERSION_INFO) + 2 &&
+                strncmp(file_contents, MICROPY_FULL_VERSION_INFO, strlen(MICROPY_FULL_VERSION_INFO)) == 0;
+        }
+
+        if (!skip_boot_output) {
+            // Wait 1.5 seconds before opening CIRCUITPY_BOOT_OUTPUT_FILE for write,
+            // in case power is momentary or will fail shortly due to, say a low, battery.
+            mp_hal_delay_ms(1500);
+
+            // USB isn't up, so we can write the file.
+            flash_set_usb_writeable(false);
+            f_open(fs, boot_output_file, CIRCUITPY_BOOT_OUTPUT_FILE, FA_WRITE | FA_CREATE_ALWAYS);
+            // Write version info to boot_out.txt.
+            mp_hal_stdout_tx_str(MICROPY_FULL_VERSION_INFO);
+            mp_hal_stdout_tx_str("\r\n");
+        }
         #endif
 
         // TODO(tannewt): Re-add support for flashing boot error output.
-        bool found_boot = maybe_run("settings.txt", NULL) ||
-                          maybe_run("settings.py", NULL) ||
-                          maybe_run("boot.py", NULL) ||
-                          maybe_run("boot.txt", NULL);
-        (void) found_boot;
+        if (boot_py_to_use) {
+            maybe_run(boot_py_to_use, NULL);
+        }
 
         #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
-        f_close(boot_output_file);
-        flash_flush();
-        boot_output_file = NULL;
+        if (!skip_boot_output) {
+            f_close(boot_output_file);
+            flash_flush();
+            boot_output_file = NULL;
+        }
+        flash_set_usb_writeable(true);
         #endif
 
         // Reset to remove any state that boot.py setup. It should only be used to

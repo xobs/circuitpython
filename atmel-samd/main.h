@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Dan Halbert for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,31 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include <string.h>
+// Functions defined in main.c that are useful elsewhere.
+// Eventually they should be factored out.
 
-#include "flash_api.h"
-#include "main.h"
-#include "py/mperrno.h"
-#include "py/runtime.h"
-#include "shared-bindings/microcontroller/__init__.h"
-#include "shared-bindings/storage/__init__.h"
-
-extern volatile bool mp_msc_enabled;
-
-void common_hal_storage_remount(const char* mount_path, bool readonly) {
-    if (strcmp(mount_path, "/") != 0) {
-        mp_raise_OSError(MP_EINVAL);
-    }
-
-    if (mp_msc_enabled) {
-        mp_raise_RuntimeError("Cannot remount '/' when USB is active.");
-    }
-
-    flash_set_usb_writeable(readonly);
-}
-
-void common_hal_storage_erase_filesystem(void) {
-    init_flash_fs(false, true);   // Force a re-format.
-    common_hal_mcu_reset();
-    // We won't actually get here, since we're resetting.
-}
+void init_flash_fs(bool create_allowed, bool force_create);
