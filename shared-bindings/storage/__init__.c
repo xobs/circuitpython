@@ -115,12 +115,32 @@ mp_obj_t storage_remount(mp_obj_t mount_path, mp_obj_t readonly) {
 }
 MP_DEFINE_CONST_FUN_OBJ_2(storage_remount_obj, storage_remount);
 
+//| .. function:: erase_filesystem()
+//|
+//|   Erase and re-create the ``CIRCUITPY`` filesystem. Then call
+//|   `microcontroller.reset()` to restart CircuitPython and have the
+//|   host computer remount CIRCUITPY.
+//|
+//|   This function can be called from the REPL when ``CIRCUITPY``
+//|   has become corrupted.
+//|
+//|   .. warning:: All the data on ``CIRCUITPY`` will be lost, and
+//|        CircuitPython will restart.
+
+mp_obj_t storage_erase_filesystem(void) {
+    common_hal_storage_erase_filesystem();
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_0(storage_erase_filesystem_obj, storage_erase_filesystem);
+
+
 STATIC const mp_rom_map_elem_t storage_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_storage) },
 
     { MP_ROM_QSTR(MP_QSTR_mount), MP_ROM_PTR(&storage_mount_obj) },
     { MP_ROM_QSTR(MP_QSTR_umount), MP_ROM_PTR(&storage_umount_obj) },
     { MP_ROM_QSTR(MP_QSTR_remount), MP_ROM_PTR(&storage_remount_obj) },
+    { MP_ROM_QSTR(MP_QSTR_erase_filesystem), MP_ROM_PTR(&storage_erase_filesystem_obj) },
 
     //| .. class:: VfsFat(block_device)
     //|

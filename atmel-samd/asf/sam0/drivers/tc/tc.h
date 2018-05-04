@@ -48,7 +48,7 @@
 #define TC_H_INCLUDED
 
 /**
- * \defgroup asfdoc_sam0_tc_group SAM Timer/Counter (TC) Driver 
+ * \defgroup asfdoc_sam0_tc_group SAM Timer/Counter (TC) Driver
  *
  * This driver for Atmel&reg; | SMART ARM&reg;-based microcontrollers provides an interface for the configuration
  * and management of the timer modules within the device, for waveform
@@ -1146,12 +1146,14 @@ static inline void tc_enable_events(
 	/* Sanity check arguments */
 	Assert(module_inst);
 	Assert(module_inst->hw);
-	Assert(events);
+        Assert(events);
 
 	Tc *const tc_module = module_inst->hw;
 
 	uint32_t event_mask = 0;
 
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 	if (events->invert_event_input == true) {
 		event_mask |= TC_EVCTRL_TCINV;
 	}
@@ -1171,6 +1173,7 @@ static inline void tc_enable_events(
 	}
 
 	tc_module->COUNT8.EVCTRL.reg |= event_mask | events->event_action;
+        #pragma GCC diagnostic pop
 }
 
 /**
