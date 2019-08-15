@@ -11,6 +11,8 @@ jobs:
         board: ["metro_m0_express", "metro_m4_express"]
     
     steps:
+    - name: Install deps
+      run: sudo apt-get install -y gettext
     - uses: actions/checkout@v1
     - name: mpy-cross
       run: make -C mpy-cross -j2
