@@ -11,8 +11,14 @@ jobs:
         board: ["metro_m0_express", "metro_m4_express"]
     
     steps:
+    - name: Set up Python 3.5
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.5
     - name: Install deps
-      run: sudo apt-get install -y gettext
+      run: |
+        sudo apt-get install -y gettext
+        pip install sh click setuptools
     - uses: actions/checkout@v1
       with:
         submodules: true
