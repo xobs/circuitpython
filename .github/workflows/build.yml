@@ -16,8 +16,48 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.5
+    - name: Install deps
+      run: |
+        sudo apt-get install -y gettext librsvg2-bin
+        pip install requests sh click setuptools cpp-coveralls Sphinx sphinx-rtd-theme recommonmark sphinxcontrib-svg2pdfconverter polib
+    - name: Versions
+      run: |
+        gcc --version
+        python3 --version
+    - uses: actions/checkout@v1
+      with:
+        submodules: true
+    - name: CircuitPython version
+      run: git describe --dirty --always --tags
+    - name: Build mpy-cross
+      run: make -C mpy-cross -j2
+    - name: Build unix port
+      run: |
+        make -C ports/unix deplibs -j2
+        make -C ports/unix -j2
+        make -C ports/unix coverage -j2
+    - name: Test all
+      run: MICROPY_CPYTHON3=python3.5 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1
+      working-directory: tests
+    - name: Test threads
+      run: MICROPY_CPYTHON3=python3.5 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1 -d thread
+      working-directory: tests
+    - name: Native Tests
+      run: MICROPY_CPYTHON3=python3.5 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1 --emit native
+      working-directory: tests
+    - name: mpy Tests
+      run: MICROPY_CPYTHON3=python3.5 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1 --via-mpy -d basics float
+      working-directory: tests
+    - name: Docs
+      run: sphinx-build -E -W -b html . _build/html
+    - name: Translations
+      run: make check-translate
+    - name: Website
+      run: build_board_info.py
+      shell: python
+      working-directory: tools
 
-  build:
+  build-arm:
     runs-on: ubuntu-16.04
     needs: test
     strategy:
@@ -75,4 +115,5 @@ jobs:
     - name: mpy-cross
       run: make -C mpy-cross -j2
     - name: build
-      run: pushd tools && TRAVIS_BOARDS="${{ matrix.board }}" python3 -u build_release_files.py && popd
+      run: TRAVIS_BOARDS="${{ matrix.board }}" python3 -u build_release_files.py
+      working-directory: tools
