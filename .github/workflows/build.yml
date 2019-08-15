@@ -19,6 +19,12 @@ jobs:
       run: |
         sudo apt-get install -y gettext
         pip install requests sh click setuptools
+        wget https://s3.amazonaws.com/adafruit-circuit-python/gcc-arm-embedded_7-2018q2-1~xenial1_amd64.deb && sudo dpkg -i gcc-arm-embedded*_amd64.deb
+    - name: Versions
+      run: |
+        gcc --version
+        arm-none-eabi-gcc --version
+        python3 --version
     - uses: actions/checkout@v1
       with:
         submodules: true
