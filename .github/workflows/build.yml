@@ -23,7 +23,7 @@ jobs:
     - name: Install deps
       run: |
         sudo apt-get install -y gettext librsvg2-bin
-        pip install requests sh click setuptools cpp-coveralls Sphinx sphinx-rtd-theme recommonmark sphinxcontrib-svg2pdfconverter polib
+        pip install requests sh click setuptools cpp-coveralls Sphinx sphinx-rtd-theme recommonmark sphinxcontrib-svg2pdfconverter polib pyyaml
     - name: Versions
       run: |
         gcc --version
