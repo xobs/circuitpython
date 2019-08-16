@@ -173,7 +173,7 @@ jobs:
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: ${{ matrix.board }}
-        path: bin/*/*/*
+        path: bin/${{ matrix.board }}
 
   website:
     runs-on: ubuntu-16.04
