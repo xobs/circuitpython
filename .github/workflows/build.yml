@@ -39,6 +39,15 @@ jobs:
     - name: Test all
       run: MICROPY_CPYTHON3=python3.5 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1
       working-directory: tests
+    - name: Print failure info
+      run: |
+        for exp in *.exp;
+        do testbase=$(basename $exp .exp);
+        echo -e "\nFAILURE $testbase";
+        diff -u $testbase.exp $testbase.out;
+        done
+      working-directory: tests
+      if: failure
     - name: Test threads
       run: MICROPY_CPYTHON3=python3.5 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1 -d thread
       working-directory: tests
@@ -52,15 +61,15 @@ jobs:
       run: sphinx-build -E -W -b html . _build/html
     - name: Translations
       run: make check-translate
-    - name: Website
-      run: build_board_info.py
-      shell: python
+    - name: New boards check
+      run: python3 -u travis_new_boards_check.py
       working-directory: tools
 
   build-arm:
     runs-on: ubuntu-16.04
     needs: test
     strategy:
+      fail-fast: false
       matrix:
         board:
         - "metro_m0_express"
@@ -93,6 +102,46 @@ jobs:
         - "bast_pro_mini_m0"
         - "datum_distance"
         - "pyruler"
+        - "cp32-m4"
+        - "feather_radiofruit_zigbee"
+        - "gemma_m0"
+        - "hallowing_m0_express"
+        - "itsybitsy_m0_express"
+        - "itsybitsy_m4_express"
+        - "meowmeow"
+        - "sam32"
+        - "uchip"
+        - "escornabot_makech"
+        - "pygamer_advance"
+        - "datum_imu"
+        - "snekboard"
+        - "feather_m0_supersized"
+        - "feather_m0_express_crickit"
+        - "feather_m0_rfm69"
+        - "feather_m0_rfm9x"
+        - "feather_m4_express"
+        - "arduino_zero"
+        - "arduino_mkr1300"
+        - "arduino_mkrzero"
+        - "pewpew10"
+        - "kicksat-sprite"
+        - "ugame10"
+        - "robohatmm1_m0"
+        - "robohatmm1_m4"
+        - "datum_light"
+        - "datalore_ip_m4"
+        - "circuitplayground_express_crickit"
+        - "feather_m0_adalogger"
+        - "feather_m0_basic"
+        - "feather_m0_express"
+        - "catwan_usbstick"
+        - "pyportal"
+        - "sparkfun_samd21_mini"
+        - "sparkfun_samd21_dev"
+        - "pybadge"
+        - "pybadge_airlift"
+        - "datum_weather"
+        - "pyportal_titano"
     
     steps:
     - name: Set up Python 3.5
@@ -116,4 +165,27 @@ jobs:
       run: make -C mpy-cross -j2
     - name: build
       run: TRAVIS_BOARDS="${{ matrix.board }}" python3 -u build_release_files.py
+      working-directory: tools
+
+  website:
+    runs-on: ubuntu-16.04
+    steps:
+    - name: Set up Python 3.5
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.5
+    - name: Install deps
+      run: |
+        pip install requests sh click 
+    - name: Versions
+      run: |
+        gcc --version
+        python3 --version
+    - uses: actions/checkout@v1
+      with:
+        submodules: true
+    - name: CircuitPython version
+      run: git describe --dirty --always --tags
+    - name: Website
+      run: python3 build_board_info.py
       working-directory: tools
