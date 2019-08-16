@@ -170,6 +170,10 @@ jobs:
     - name: build
       run: TRAVIS_BOARDS="${{ matrix.board }}" python3 -u build_release_files.py
       working-directory: tools
+    - uses: actions/upload-artifact@v1.0.0
+      with:
+        name: ${{ matrix.board }}
+        path: bin/*/*/*
 
   website:
     runs-on: ubuntu-16.04
