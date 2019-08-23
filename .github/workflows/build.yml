@@ -155,7 +155,7 @@ jobs:
     - name: Install deps
       run: |
         sudo apt-get install -y gettext
-        pip install requests sh click setuptools
+        pip install requests sh click setuptools awscli
         wget https://s3.amazonaws.com/adafruit-circuit-python/gcc-arm-embedded_7-2018q2-1~xenial1_amd64.deb && sudo dpkg -i gcc-arm-embedded*_amd64.deb
     - name: Versions
       run: |
@@ -174,6 +174,11 @@ jobs:
       with:
         name: ${{ matrix.board }}
         path: bin/${{ matrix.board }}
+    - name: Upload to S3
+      run: aws s3 cp bin/ s3://adafruit-circuit-python/ --recursive --dryrun --no-progress --region us-east-1
+      env:
+        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets. AWS_SECRET_ACCESS_KEY }}
 
   website:
     runs-on: ubuntu-16.04
