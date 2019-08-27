@@ -88,10 +88,8 @@ def get_version_info():
         # No exact match
         pass
 
-    if "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true":
-        sha = os.environ["TRAVIS_COMMIT"]
-        if os.environ["TRAVIS_PULL_REQUEST"] != "false":
-            sha = os.environ["TRAVIS_PULL_REQUEST_SHA"]
+    if "GITHUB_SHA" in os.environ:
+        sha = os.environ["GITHUB_SHA"]
 
     if not version:
         version="{}-{}".format(date.today().strftime("%Y%m%d"), sha[:7])
@@ -208,7 +206,7 @@ def generate_download_info():
     boards = {}
     errors = []
 
-    new_tag = os.environ["TRAVIS_TAG"]
+    new_tag = os.environ["RELEASE_TAG"]
 
     changes = {
         "new_release": new_tag,
@@ -280,7 +278,7 @@ def generate_download_info():
         print("No new release to update")
 
 if __name__ == "__main__":
-    if "TRAVIS_TAG" in os.environ and os.environ["TRAVIS_TAG"]:
+    if "RELEASE_TAG" in os.environ and os.environ["RELEASE_TAG"]:
         generate_download_info()
     else:
         print("skipping website update because this isn't a tag")
