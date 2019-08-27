@@ -5,8 +5,11 @@ on: release
 jobs:
   website:
     runs-on: ubuntu-latest
-    needs: build-arm
     steps:
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
     - name: Set up Python 3.5
       uses: actions/setup-python@v1
       with:
