@@ -130,7 +130,7 @@ def create_pr(changes, updated, git_info):
         updated_list.append(info)
 
     updated = json.dumps(updated_list, sort_keys=True, indent=4).encode("utf-8") + b"\n"
-    print(updated.decode("utf-8"))
+    #print(updated.decode("utf-8"))
     pr_title = "Automated website update for release {}".format(changes["new_release"])
     boards = ""
     if changes["new_boards"]:
@@ -238,7 +238,6 @@ def generate_download_info():
 
     board_mapping = get_board_mapping()
 
-    print(previous_releases)
     for release in previous_releases:
         update_downloads(board_mapping, release)
 
