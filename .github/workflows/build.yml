@@ -68,7 +68,6 @@ jobs:
 
   build-arm:
     runs-on: ubuntu-16.04
-    needs: test
     strategy:
       fail-fast: false
       matrix:
