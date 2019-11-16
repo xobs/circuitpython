@@ -28,7 +28,9 @@
 
 #include "mphalport.h"
 
+#ifdef MICROPY_HW_LED_STATUS
 #include "shared-bindings/digitalio/DigitalInOut.h"
+#endif
 
 #include "supervisor/serial.h"
 #include "supervisor/shared/rgb_led_colors.h"

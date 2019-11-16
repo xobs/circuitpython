@@ -25,11 +25,11 @@
  */
 
 #include "mphalport.h"
-#include "common-hal/microcontroller/Pin.h"
 #include "rgb_led_status.h"
 
 #ifdef MICROPY_HW_NEOPIXEL
 uint8_t rgb_status_brightness = 63;
+#include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-bindings/neopixel_write/__init__.h"
 static uint8_t status_neopixel_color[3];
@@ -44,6 +44,7 @@ uint8_t rgb_status_brightness = 50;
 static uint8_t status_apa102_color[APA102_BUFFER_LENGTH] = {0, 0, 0, 0, 0xff, 0, 0, 0, 0xff, 0xff, 0xff, 0xff};
 
 #if CIRCUITPY_BITBANG_APA102
+#include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/bitbangio/SPI.h"
 #include "shared-module/bitbangio/types.h"
 static bitbangio_spi_obj_t status_apa102 = {
