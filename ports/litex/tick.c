@@ -36,6 +36,7 @@
 // Global millisecond tick count
 volatile uint64_t ticks_ms = 0;
 
+__attribute__((section(".ramtext")))
 void SysTick_Handler(void) {
     timer0_ev_pending_write(1);
     // SysTick interrupt handler called when the SysTick timer reaches zero

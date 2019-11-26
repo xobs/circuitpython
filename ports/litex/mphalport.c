@@ -62,6 +62,7 @@ void mp_hal_delay_ms(mp_uint_t delay) {
 
 extern void SysTick_Handler(void);
 
+__attribute__((section(".ramtext")))
 void isr(void) {
     uint8_t irqs = irq_pending() & irq_getmask();
 
