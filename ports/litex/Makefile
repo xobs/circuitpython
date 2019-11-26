@@ -95,7 +95,7 @@ CFLAGS += -Wno-undef
 # STM32 might do casts that increase alignment requirements.
 CFLAGS += -Wno-cast-align
 
-CFLAGS += -march=rv32imac -mabi=ilp32
+CFLAGS += -march=rv32i -mabi=ilp32
 
 # TODO: check this
 CFLAGS += -D__START=main
@@ -106,7 +106,7 @@ LDFLAGS = $(CFLAGS) -fshort-enums -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.ma
 LIBS := -lgcc -lc
 
 
-LDFLAGS += -march=rv32imac -mabi=ilp32 -flto -ffreestanding -nostartfiles -Wl,--gc-section -Wl,-Bstatic -Wl,-melf32lriscv -nostartfiles \
+LDFLAGS += -march=rv32i -mabi=ilp32 -flto -ffreestanding -nostartfiles -Wl,--gc-section -Wl,-Bstatic -Wl,-melf32lriscv -nostartfiles \
 			-Wl,--no-warn-mismatch \
 			-Wl,--build-id=none
 
