@@ -31,7 +31,14 @@
 #include "py/mpstate.h"
 #include "py/gc.h"
 
+#include "csr.h"
+#include "generated/soc.h"
+
 #include "irq.h"
+
+#ifdef CFG_TUSB_MCU
+    void hal_dcd_isr(uint8_t rhport);
+#endif
 
 /*------------------------------------------------------------------*/
 /* delay
@@ -53,8 +60,17 @@ void mp_hal_delay_ms(mp_uint_t delay) {
     }
 }
 
-void isr(void) {
+extern void SysTick_Handler(void);
 
+void isr(void) {
+    uint8_t irqs = irq_pending() & irq_getmask();
+
+#ifdef CFG_TUSB_MCU
+    if (irqs & (1 << USB_INTERRUPT))
+        hal_dcd_isr(0);
+#endif
+    if (irqs & (1 << TIMER0_INTERRUPT))
+        SysTick_Handler();
 }
 
 mp_uint_t cpu_get_regs_and_sp(mp_uint_t *regs) {

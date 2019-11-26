@@ -4,7 +4,6 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
- * Copyright (c) 2019 Lucian Copeland for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,62 +24,16 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
-#include "supervisor/port.h"
 #include "boards/board.h"
-#include "tick.h"
-#include "irq.h"
+#include "mpconfigboard.h"
 
-// #include "common-hal/microcontroller/Pin.h"
-// #include "common-hal/busio/I2C.h"
-// #include "common-hal/busio/SPI.h"
-// #include "common-hal/busio/UART.h"
-// #include "common-hal/pulseio/PWMOut.h"
-
-safe_mode_t port_init(void) {
-    irq_setmask(0);
-    irq_setie(1);
-    tick_init();
-    board_init(); 
-    return NO_SAFE_MODE;
+void board_init(void) {
 }
 
-void reset_port(void) {
-    // reset_all_pins();
-    // i2c_reset();
-    // spi_reset();
-    // uart_reset();
-    // pwmout_reset();
+bool board_requests_safe_mode(void) {
+    return false;
 }
 
-void reset_to_bootloader(void) {
+void reset_board(void) {
 
-}
-
-void reset_cpu(void) {
-}
-
-uint32_t *port_stack_get_limit(void) {
-    return &_ebss;
-}
-
-uint32_t *port_stack_get_top(void) {
-    return &_estack;
-}
-
-extern uint32_t _ebss;
-// Place the word to save just after our BSS section that gets blanked.
-void port_set_saved_word(uint32_t value) {
-    _ebss = value;
-}
-
-uint32_t port_get_saved_word(void) {
-    return _ebss;
-}
-
-void HardFault_Handler(void) {
-    reset_into_safe_mode(HARD_CRASH);
-    while (true) {
-        asm("nop;");
-    }
 }
