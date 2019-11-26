@@ -75,7 +75,7 @@
 	url = https://github.com/adafruit/nrfx.git
 [submodule "lib/tinyusb"]
 	path = lib/tinyusb
-	url = https://github.com/xobs/tinyusb.git
+	url = https://github.com/hathach/tinyusb.git
 	branch = valentyusb-eptri
 [submodule "tools/huffman"]
 	path = tools/huffman
