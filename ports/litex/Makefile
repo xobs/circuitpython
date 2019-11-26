@@ -79,7 +79,7 @@ ifeq ($(DEBUG), 1)
   # You may want to enable these flags to make setting breakpoints easier.
   CFLAGS += -fno-inline -fno-ipa-sra
 else
-  CFLAGS += -Os -DNDEBUG
+  CFLAGS += -Os -DNDEBUG -ggdb3
   # TODO: Test with -flto
   ### CFLAGS += -flto
 endif
