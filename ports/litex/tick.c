@@ -24,7 +24,9 @@
  * THE SOFTWARE.
  */
 
+#include "csr.h"
 #include "tick.h"
+#include "irq.h"
 
 #include "supervisor/shared/autoreload.h"
 #include "supervisor/filesystem.h"
@@ -35,6 +37,7 @@
 volatile uint64_t ticks_ms = 0;
 
 void SysTick_Handler(void) {
+    timer0_ev_pending_write(1);
     // SysTick interrupt handler called when the SysTick timer reaches zero
     // (every millisecond).
     ticks_ms += 1;
@@ -54,10 +57,20 @@ void SysTick_Handler(void) {
 
 uint32_t HAL_GetTick(void) //override ST HAL
 {
-  return (uint32_t)ticks_ms;
+    return (uint32_t)ticks_ms;
 }
 
 void tick_init() {
+    int t;
+
+    timer0_en_write(0);
+    t = CONFIG_CLOCK_FREQUENCY / 1000; // 1000 kHz tick
+    timer0_reload_write(t);
+    timer0_load_write(t);
+    timer0_en_write(1);
+    timer0_ev_enable_write(1);
+    timer0_ev_pending_write(1);
+    irq_setmask(irq_getmask() | (1 << TIMER0_INTERRUPT));
 }
 
 void tick_delay(uint32_t us) {
