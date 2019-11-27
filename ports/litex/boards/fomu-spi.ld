@@ -17,6 +17,37 @@ _estack = ORIGIN(RAM) + LENGTH(RAM);
 /* define output sections */
 SECTIONS
 {
+    /* This is the initialized data section
+    The program executes knowing that the data is in the RAM
+    but the loader puts the initial values in the FLASH (inidata).
+    It is one task of the startup to copy the initial values from FLASH to RAM. */
+    .data :  AT ( _sidata )
+    {
+        . = ALIGN(4);
+        _sdata = .;        /* create a global symbol at data start; used by startup code in order to initialise the .data section in RAM */
+
+        /* Place USB code into RAM, since it is called very frequently
+         * and should be performant.
+         */
+        *(.text.usbd_*)
+        *(.text.tud_*)
+        *(.text.usb_*)
+        *(.text.dcd_*)
+        *(.text.hal_*)
+        *(.text.cdcd_*)
+        *(.text.mscd_*)
+
+        *(.ramtext)        /* .text* sections (code) */
+        *(.ramtext*)       /* .text* sections (code) */
+        *(.data)           /* .data sections */
+        *(.data*)          /* .data* sections */
+        *(.sdata)          /* .data sections */
+        *(.sdata*)         /* .data* sections */
+
+        . = ALIGN(4);
+        _edata = .;        /* define a global symbol at data end; used by startup code in order to initialise the .data section in RAM */
+    } >RAM
+
     /* The program code and other data goes into FLASH */
     .text :
     {
@@ -33,26 +64,6 @@ SECTIONS
         _etext = .;        /* define a global symbol at end of code */
         _sidata = _etext;  /* This is used by the startup in order to initialize the .data secion */
     } >FLASH
-
-    /* This is the initialized data section
-    The program executes knowing that the data is in the RAM
-    but the loader puts the initial values in the FLASH (inidata).
-    It is one task of the startup to copy the initial values from FLASH to RAM. */
-    .data :  AT ( _sidata )
-    {
-        . = ALIGN(4);
-        _sdata = .;        /* create a global symbol at data start; used by startup code in order to initialise the .data section in RAM */
-
-        *(.ramtext)        /* .text* sections (code) */
-        *(.ramtext*)       /* .text* sections (code) */
-        *(.data)           /* .data sections */
-        *(.data*)          /* .data* sections */
-        *(.sdata)          /* .data sections */
-        *(.sdata*)         /* .data* sections */
-
-        . = ALIGN(4);
-        _edata = .;        /* define a global symbol at data end; used by startup code in order to initialise the .data section in RAM */
-    } >RAM
 
     /* Uninitialized data section */
     .bss :
