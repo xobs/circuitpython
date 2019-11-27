@@ -33,10 +33,4 @@
 #define FLASH_PAGE_SIZE             (0x1000)
 
 #define AUTORESET_DELAY_MS 500
-#define BOARD_FLASH_SIZE (FLASH_SIZE - 0x4000)
-
-// On-board flash
-#define SPI_FLASH_MOSI_PIN          &pin_PB05
-#define SPI_FLASH_MISO_PIN          &pin_PB04
-#define SPI_FLASH_SCK_PIN           &pin_PB03
-#define SPI_FLASH_CS_PIN            &pin_PA15
+#define BOARD_FLASH_SIZE            (FLASH_SIZE)
