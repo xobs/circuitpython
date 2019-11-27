@@ -30,7 +30,7 @@
 #define MICROPY_HW_MCU_NAME         "VexRiscv"
 
 #define FLASH_SIZE                  (0x100000)
-#define FLASH_PAGE_SIZE             (0x4000)
+#define FLASH_PAGE_SIZE             (0x1000)
 
 #define AUTORESET_DELAY_MS 500
 #define BOARD_FLASH_SIZE (FLASH_SIZE - 0x4000)
@@ -40,13 +40,3 @@
 #define SPI_FLASH_MISO_PIN          &pin_PB04
 #define SPI_FLASH_SCK_PIN           &pin_PB03
 #define SPI_FLASH_CS_PIN            &pin_PA15
-
-#define DEFAULT_I2C_BUS_SCL (&pin_PB06)
-#define DEFAULT_I2C_BUS_SDA (&pin_PB07)
-
-#define DEFAULT_SPI_BUS_SCK (&pin_PB13)
-#define DEFAULT_SPI_BUS_MOSI (&pin_PB15)
-#define DEFAULT_SPI_BUS_MISO (&pin_PB14)
-
-#define DEFAULT_UART_BUS_RX (&pin_PB11)
-#define DEFAULT_UART_BUS_TX (&pin_PB10)
