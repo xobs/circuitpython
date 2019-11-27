@@ -30,12 +30,7 @@
 #include "boards/board.h"
 #include "tick.h"
 #include "irq.h"
-
-// #include "common-hal/microcontroller/Pin.h"
-// #include "common-hal/busio/I2C.h"
-// #include "common-hal/busio/SPI.h"
-// #include "common-hal/busio/UART.h"
-// #include "common-hal/pulseio/PWMOut.h"
+#include "csr.h"
 
 safe_mode_t port_init(void) {
     irq_setmask(0);
@@ -54,7 +49,7 @@ void reset_port(void) {
 }
 
 void reset_to_bootloader(void) {
-
+    reboot_ctrl_write(0xac);
 }
 
 void reset_cpu(void) {
@@ -76,11 +71,4 @@ void port_set_saved_word(uint32_t value) {
 
 uint32_t port_get_saved_word(void) {
     return _ebss;
-}
-
-void HardFault_Handler(void) {
-    reset_into_safe_mode(HARD_CRASH);
-    while (true) {
-        asm("nop;");
-    }
 }
