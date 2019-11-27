@@ -26,8 +26,8 @@
 
 // This file defines board specific functions.
 
-#ifndef MICROPY_INCLUDED_STM32F4_BOARDS_BOARD_H
-#define MICROPY_INCLUDED_STM32F4_BOARDS_BOARD_H
+#ifndef MICROPY_INCLUDED_FOMU_BOARDS_BOARD_H
+#define MICROPY_INCLUDED_FOMU_BOARDS_BOARD_H
 
 #include <stdbool.h>
 
@@ -42,4 +42,4 @@ bool board_requests_safe_mode(void);
 // Reset the state of off MCU components such as neopixels.
 void reset_board(void);
 
-#endif  // MICROPY_INCLUDED_STM32F4_BOARDS_BOARD_H
+#endif  // MICROPY_INCLUDED_FOMU_BOARDS_BOARD_H
