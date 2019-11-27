@@ -24,10 +24,29 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_STM34F4_COMMON_HAL_MICROCONTROLLER_PIN_H
-#define MICROPY_INCLUDED_STM34F4_COMMON_HAL_MICROCONTROLLER_PIN_H
+#ifndef MICROPY_INCLUDED_FOMU_COMMON_HAL_MICROCONTROLLER_PIN_H
+#define MICROPY_INCLUDED_FOMU_COMMON_HAL_MICROCONTROLLER_PIN_H
 
 #include "py/mphal.h"
+
+
+typedef struct {
+    mp_obj_base_t base;
+    uint8_t number;
+} mcu_pin_obj_t;
+
+// STM32 can have up to 9 ports, each restricted to 16 pins
+// We split the pin/port evenly, in contrast to nrf. 
+#define PIN(p_number)       \
+{ \
+    { &mcu_pin_type }, \
+    .number = p_number \
+}
+
+extern const mcu_pin_obj_t pin_TOUCH1;
+extern const mcu_pin_obj_t pin_TOUCH2;
+extern const mcu_pin_obj_t pin_TOUCH3;
+extern const mcu_pin_obj_t pin_TOUCH4;
 
 void reset_all_pins(void);
 // reset_pin_number takes the pin number instead of the pointer so that objects don't
@@ -36,7 +55,7 @@ void reset_pin_number(uint8_t pin_port, uint8_t pin_number);
 void claim_pin(const mcu_pin_obj_t* pin);
 bool pin_number_is_free(uint8_t pin_port, uint8_t pin_number);
 void never_reset_pin_number(uint8_t pin_port, uint8_t pin_number);
-GPIO_TypeDef * pin_port(uint8_t pin_port);
+// GPIO_TypeDef * pin_port(uint8_t pin_port);
 uint16_t pin_mask(uint8_t pin_number);
 
-#endif // MICROPY_INCLUDED_STM34F4_COMMON_HAL_MICROCONTROLLER_PIN_H
+#endif // MICROPY_INCLUDED_FOMU_COMMON_HAL_MICROCONTROLLER_PIN_H

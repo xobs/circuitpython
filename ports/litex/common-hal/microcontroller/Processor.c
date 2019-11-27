@@ -30,9 +30,10 @@
 #include "py/runtime.h"
 #include "supervisor/shared/translate.h"
 
-#include "stm32f4xx_hal.h"
+#include "csr.h"
+#include "generated/soc.h"
 
-#define STM32_UUID ((uint32_t *)0x1FFF7A10)
+#define STM32_UUID ((uint32_t *)0xf05bf05b)
 
 float common_hal_mcu_processor_get_temperature(void) {
     return NAN;
@@ -43,7 +44,7 @@ float common_hal_mcu_processor_get_voltage(void) {
 }
 
 uint32_t common_hal_mcu_processor_get_frequency(void) {
-    return SystemCoreClock;
+    return CONFIG_CLOCK_FREQUENCY;
 }
 
 void common_hal_mcu_processor_get_uid(uint8_t raw_id[]) {

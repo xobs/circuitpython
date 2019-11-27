@@ -29,26 +29,18 @@
 #include "py/runtime.h"
 #include "supervisor/shared/translate.h"
 
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_ll_gpio.h"
+#include "csr.h"
 
 void common_hal_digitalio_digitalinout_never_reset(
         digitalio_digitalinout_obj_t *self) {
-    never_reset_pin_number(self->pin->port, self->pin->number);
+    (void)self;
 }
 
 digitalinout_result_t common_hal_digitalio_digitalinout_construct(
         digitalio_digitalinout_obj_t *self, const mcu_pin_obj_t *pin) {
 
-    claim_pin(pin);
+    // claim_pin(pin);
     self->pin = pin;
-
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = pin_mask(self->pin->number);
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(pin_port(self->pin->port), &GPIO_InitStruct);
 
     return DIGITALINOUT_OK;
 }
@@ -62,99 +54,66 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t *self
         return;
     }
 
-    reset_pin_number(self->pin->port, self->pin->number);
+    // reset_pin_number(0, self->pin->number);
     self->pin = mp_const_none;
 }
 
 void common_hal_digitalio_digitalinout_switch_to_input(
         digitalio_digitalinout_obj_t *self, digitalio_pull_t pull) {
-
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = pin_mask(self->pin->number);
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(pin_port(self->pin->port), &GPIO_InitStruct);
-
-    common_hal_digitalio_digitalinout_set_pull(self, pull);
+    (void)pull;
+    touch_oe_write(touch_oe_read() & ~(1 << self->pin->number));
 }
 
 void common_hal_digitalio_digitalinout_switch_to_output(
         digitalio_digitalinout_obj_t *self, bool value,
         digitalio_drive_mode_t drive_mode) {
-
-    common_hal_digitalio_digitalinout_set_drive_mode(self, drive_mode);
+    (void)drive_mode;
     common_hal_digitalio_digitalinout_set_value(self, value);
+    touch_oe_write(touch_oe_read() | (1 << self->pin->number));
 }
 
 digitalio_direction_t common_hal_digitalio_digitalinout_get_direction(
         digitalio_digitalinout_obj_t *self) {
 
-    return (LL_GPIO_GetPinMode(pin_port(self->pin->port), pin_mask(self->pin->number)) 
-        == LL_GPIO_MODE_INPUT) ? DIRECTION_INPUT : DIRECTION_OUTPUT;
+    return (touch_oe_read() & (1 << self->pin->number))
+         ? DIRECTION_OUTPUT : DIRECTION_INPUT;
 }
 
 void common_hal_digitalio_digitalinout_set_value(
         digitalio_digitalinout_obj_t *self, bool value) {
-    HAL_GPIO_WritePin(pin_port(self->pin->port), pin_mask(self->pin->number), value);
+    if (value)
+        touch_o_write(touch_o_read() | (1 << self->pin->number));
+    else
+        touch_o_write(touch_o_read() & ~(1 << self->pin->number));
 }
 
 bool common_hal_digitalio_digitalinout_get_value(
         digitalio_digitalinout_obj_t *self) {
-    return (LL_GPIO_GetPinMode(pin_port(self->pin->port), pin_mask(self->pin->number)) == LL_GPIO_MODE_INPUT)
-        ? HAL_GPIO_ReadPin(pin_port(self->pin->port), pin_mask(self->pin->number))
-        : LL_GPIO_IsOutputPinSet(pin_port(self->pin->port), pin_mask(self->pin->number));
+    return !!(touch_i_read() & (1 << self->pin->number));
 }
 
 void common_hal_digitalio_digitalinout_set_drive_mode(
         digitalio_digitalinout_obj_t *self,
         digitalio_drive_mode_t drive_mode) {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = pin_mask(self->pin->number);
-    GPIO_InitStruct.Mode = (drive_mode == DRIVE_MODE_OPEN_DRAIN ? 
-        GPIO_MODE_OUTPUT_OD : GPIO_MODE_OUTPUT_PP);
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(pin_port(self->pin->port), &GPIO_InitStruct);
+    (void)self;
+    (void)drive_mode;
 }
 
 digitalio_drive_mode_t common_hal_digitalio_digitalinout_get_drive_mode(
         digitalio_digitalinout_obj_t *self) {
-
-    return LL_GPIO_GetPinOutputType(pin_port(self->pin->port), pin_mask(self->pin->number)) 
-        == LL_GPIO_OUTPUT_OPENDRAIN ? DRIVE_MODE_OPEN_DRAIN : DRIVE_MODE_PUSH_PULL;
+    if (common_hal_digitalio_digitalinout_get_direction(self) == DIRECTION_OUTPUT)
+        return DRIVE_MODE_PUSH_PULL;
+    else
+        return DRIVE_MODE_OPEN_DRAIN;
 }
 
 void common_hal_digitalio_digitalinout_set_pull(
         digitalio_digitalinout_obj_t *self, digitalio_pull_t pull) {
-
-    switch (pull) {
-        case PULL_UP:
-            LL_GPIO_SetPinPull(pin_port(self->pin->port), pin_mask(self->pin->number),LL_GPIO_PULL_UP);
-            break;
-        case PULL_DOWN:
-            LL_GPIO_SetPinPull(pin_port(self->pin->port), pin_mask(self->pin->number),LL_GPIO_PULL_DOWN);
-            break;
-        case PULL_NONE:
-            LL_GPIO_SetPinPull(pin_port(self->pin->port), pin_mask(self->pin->number),LL_GPIO_PULL_NO);
-            break;
-        default:
-            break;
-    }
+    (void)self;
+    (void)pull;
 }
 
 digitalio_pull_t common_hal_digitalio_digitalinout_get_pull(
         digitalio_digitalinout_obj_t *self) {
-    
-
-    switch (LL_GPIO_GetPinPull(pin_port(self->pin->port), pin_mask(self->pin->number))) {
-        case LL_GPIO_PULL_UP:
-            return PULL_UP;
-        case LL_GPIO_PULL_DOWN:
-            return PULL_DOWN;
-        case LL_GPIO_PULL_NO:
-            return PULL_NONE;
-        default:
-            return PULL_NONE;
-    }
+    return PULL_NONE;
 }
