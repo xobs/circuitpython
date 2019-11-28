@@ -29,9 +29,9 @@
 #define MICROPY_HW_BOARD_NAME       "Hackaday Supercon 2019 Badge"
 #define MICROPY_HW_MCU_NAME         "VexRiscv"
 
-#define FLASH_SIZE                  (0x100000)
+#define FLASH_SIZE                  (0xCFFFFF-0x380000)
 #define FLASH_PAGE_SIZE             (0x1000)
-#define FLASH_PARTITION_OFFSET_BYTES (1024*1024 + 0x300000)
+#define FLASH_PARTITION_OFFSET_BYTES (0x380000)
 
 #define AUTORESET_DELAY_MS 500
 #define BOARD_FLASH_SIZE            (FLASH_SIZE)
