@@ -11,6 +11,10 @@ LONGINT_IMPL = MPZ
 # so increase it to 32.
 CFLAGS += -DCFG_TUD_TASK_QUEUE_SZ=32
 
+# Fomu only implements rv32i
+CFLAGS += -march=rv32i -mabi=ilp32
+LDFLAGS += -march=rv32i -mabi=ilp32
+
 CIRCUITPY_NEOPIXEL_WRITE = 1
 CIRCUITPY_DIGITALIO = 1
 CIRCUITPY_MICROCONTROLLER = 1

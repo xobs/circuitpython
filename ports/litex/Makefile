@@ -83,8 +83,6 @@ else
   ### CFLAGS += -flto
 endif
 
-C_DEFS = -DBLAH
-
 CFLAGS += $(INC) -Werror -Wall -std=gnu11 -nostdlib $(BASE_CFLAGS) $(C_DEFS) $(CFLAGS_MOD) $(COPT)
 
 # Undo some warnings.
@@ -94,18 +92,16 @@ CFLAGS += -Wno-undef
 # STM32 might do casts that increase alignment requirements.
 CFLAGS += -Wno-cast-align
 
-CFLAGS += -march=rv32i -mabi=ilp32
-
 # TODO: check this
 CFLAGS += -D__START=main
 
-LD_FILE := boards/fomu-spi.ld
+LD_FILE := boards/$(BOARD)/$(BOARD)-spi.ld
 
 LDFLAGS = $(CFLAGS) -fshort-enums -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs -Wl,-melf32lriscv
 LIBS := -lgcc -lc
 
 
-LDFLAGS += -march=rv32i -mabi=ilp32 -flto -ffreestanding -nostartfiles -Wl,--gc-section -Wl,-Bstatic -Wl,-melf32lriscv -nostartfiles \
+LDFLAGS += -flto -ffreestanding -nostartfiles -Wl,--gc-section -Wl,-Bstatic -Wl,-melf32lriscv -nostartfiles \
 			-Wl,--no-warn-mismatch \
 			-Wl,--build-id=none
 
