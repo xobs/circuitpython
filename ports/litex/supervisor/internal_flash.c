@@ -49,8 +49,6 @@ enum pin {
 
 #define NO_CACHE        0xffffffff
 
-#define FLASH_PARTITION_OFFSET_BYTES (1024*1024)
-
 uint8_t  _flash_cache[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
 uint32_t _flash_page_addr = NO_CACHE;
 
@@ -237,7 +235,7 @@ void spiWritePage(uint32_t flash_address, const uint8_t *data) {
 }
 
 static inline uint32_t lba2addr(uint32_t block) {
-    return ((uint32_t)0x20000000 + FLASH_PARTITION_OFFSET_BYTES) + block * FILESYSTEM_BLOCK_SIZE;
+    return (0x20000000 + FLASH_PARTITION_OFFSET_BYTES) + (block * FILESYSTEM_BLOCK_SIZE);
 }
 
 void supervisor_flash_init(void) {
