@@ -13,6 +13,7 @@ _start:
 
 .section .ramtext
 .global  trap_entry
+.align 4
 trap_entry:
   sw x1,  - 1*4(sp)
   sw x5,  - 2*4(sp)
