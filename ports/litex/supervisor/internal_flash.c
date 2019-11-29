@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
@@ -49,9 +50,9 @@ enum pin {
 
 #define NO_CACHE        0xffffffff
 
-uint8_t  _flash_cache[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
-uint32_t _flash_page_addr = NO_CACHE;
-
+static uint32_t  _flash_cache[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
+static uint32_t _flash_page_addr = NO_CACHE;
+static bool     _flash_cache_dirty;
 // -------------------------------------------------------------------------
 // When performing SPI operations, the flash cannot be accessed.  Since we
 // normally execute directly from SPI, this can cause problems.
@@ -73,7 +74,7 @@ static inline uint32_t spi_readl(uint32_t addr)
 }
 
 __attribute__((section(".ramtext")))
-static inline void bb_write(unsigned char value) {
+static inline void bb_spi_write(unsigned char value) {
     spi_writel(value, CSR_LXSPI_BITBANG_ADDR);
 }
 
@@ -83,24 +84,24 @@ static inline uint32_t bb_read(void) {
 }
 
 __attribute__((section(".ramtext")))
-static inline void bb_en(unsigned int en) {
+static inline void bb_spi_en(unsigned int en) {
     spi_writel(en, CSR_LXSPI_BITBANG_EN_ADDR);
 }
 
 __attribute__((section(".ramtext")))
-static inline void spi_irq_setie(unsigned int ie)
+static inline void bb_spi_irq_setie(unsigned int ie)
 {
     if(ie) csrs(mstatus,CSR_MSTATUS_MIE); else csrc(mstatus,CSR_MSTATUS_MIE);
 }
 
 __attribute__((section(".ramtext")))
 static inline void bb_spi_begin(void) {
-    bb_write((0 << PIN_CLK) | (0 << PIN_CS));
+    bb_spi_write((0 << PIN_CLK) | (0 << PIN_CS));
 }
 
 __attribute__((section(".ramtext")))
 static inline void bb_spi_end(void) {
-    bb_write((0 << PIN_CLK) | (1 << PIN_CS));
+    bb_spi_write((0 << PIN_CLK) | (1 << PIN_CS));
 }
 
 __attribute__((section(".ramtext")))
@@ -109,13 +110,13 @@ static void spi_single_tx(uint8_t out) {
 
     for (bit = 7; bit >= 0; bit--) {
         if (out & (1 << bit)) {
-            bb_write((0 << PIN_CLK) | (1 << PIN_MOSI));
-            bb_write((1 << PIN_CLK) | (1 << PIN_MOSI));
-            bb_write((0 << PIN_CLK) | (1 << PIN_MOSI));
+            bb_spi_write((0 << PIN_CLK) | (1 << PIN_MOSI));
+            bb_spi_write((1 << PIN_CLK) | (1 << PIN_MOSI));
+            bb_spi_write((0 << PIN_CLK) | (1 << PIN_MOSI));
         } else {
-            bb_write((0 << PIN_CLK) | (0 << PIN_MOSI));
-            bb_write((1 << PIN_CLK) | (0 << PIN_MOSI));
-            bb_write((0 << PIN_CLK) | (0 << PIN_MOSI));
+            bb_spi_write((0 << PIN_CLK) | (0 << PIN_MOSI));
+            bb_spi_write((1 << PIN_CLK) | (0 << PIN_MOSI));
+            bb_spi_write((0 << PIN_CLK) | (0 << PIN_MOSI));
         }
     }
 }
@@ -125,19 +126,19 @@ static uint8_t spi_single_rx(void) {
     int bit = 0;
     uint8_t in = 0;
 
-    bb_write((1 << PIN_MISO_EN) | (0 << PIN_CLK));
+    bb_spi_write((1 << PIN_MISO_EN) | (0 << PIN_CLK));
 
     while (bit++ < 8) {
-        bb_write((1 << PIN_MISO_EN) | (1 << PIN_CLK));
+        bb_spi_write((1 << PIN_MISO_EN) | (1 << PIN_CLK));
         in = (in << 1) | bb_read();
-        bb_write((1 << PIN_MISO_EN) | (0 << PIN_CLK));
+        bb_spi_write((1 << PIN_MISO_EN) | (0 << PIN_CLK));
     }
 
     return in;
 }
 
 __attribute__((section(".ramtext")))
-int bb_spi_beginErase4(uint32_t erase_addr) {
+static int bb_spi_beginErase4(uint32_t erase_addr) {
     // Enable Write-Enable Latch (WEL)
     bb_spi_begin();
     spi_single_tx(0x06);
@@ -153,7 +154,7 @@ int bb_spi_beginErase4(uint32_t erase_addr) {
 }
 
 __attribute__((section(".ramtext")))
-int bb_spi_beginWrite(uint32_t addr, const void *v_data, unsigned int count) {
+static int bb_spi_beginWrite(uint32_t addr, const void *v_data, unsigned int count) {
     const uint8_t write_cmd = 0x02;
     const uint8_t *data = v_data;
     unsigned int i;
@@ -187,12 +188,12 @@ static uint8_t spi_read_status(void) {
 }
 
 __attribute__((section(".ramtext")))
-int bb_spi_is_busy(void) {
+static int bb_spi_is_busy(void) {
     return spi_read_status() & (1 << 0);
 }
 
 __attribute__((section(".ramtext")))
-void spiWritePage(uint32_t flash_address, const uint8_t *data) {
+static void bb_spi_write_page(uint32_t flash_address, const uint8_t *data) {
     const uint32_t flash_address_end = flash_address + FLASH_PAGE_SIZE;
 
     // Ensure we're within the target flash address range.
@@ -205,18 +206,20 @@ void spiWritePage(uint32_t flash_address, const uint8_t *data) {
         return;
     }
 
-    if ((flash_address - FLASH_PARTITION_OFFSET_BYTES) > FLASH_SIZE) {
+    if ((flash_address_end - FLASH_PARTITION_OFFSET_BYTES) > FLASH_SIZE) {
         asm("ebreak");
         return;
     }
-    if (flash_address < FLASH_PARTITION_OFFSET_BYTES) {
+    if (flash_address_end < FLASH_PARTITION_OFFSET_BYTES) {
         asm("ebreak");
         return;
     }
 
-    spi_irq_setie(0);
-    bb_write((0 << PIN_CLK) | (1 << PIN_CS));
-    bb_en(1);
+    // Ensure we're not erasing the middle of a flash bank
+    if ((flash_address & 0xfff) != 0) {
+        asm("ebreak");
+        return;
+    }
 
     while (bb_spi_is_busy())
         ; // relax
@@ -230,8 +233,6 @@ void spiWritePage(uint32_t flash_address, const uint8_t *data) {
         flash_address += 256;
         data += 256;
     }
-    bb_en(0);
-    spi_irq_setie(1);
 }
 
 static inline uint32_t lba2addr(uint32_t block) {
@@ -249,14 +250,28 @@ uint32_t supervisor_flash_get_block_count(void) {
     return FLASH_SIZE/FILESYSTEM_BLOCK_SIZE;
 }
 
+__attribute__((section(".ramtext")))
 void supervisor_flash_flush(void) {
-    if (_flash_page_addr == NO_CACHE) return;
+    // Skip if data is the same, or if there is no data in the cache
+    if (_flash_page_addr == NO_CACHE)
+        return;
+    if (!_flash_cache_dirty)
+        return;
 
-    // Skip if data is the same
-    if (memcmp(_flash_cache, (void *)_flash_page_addr, FLASH_PAGE_SIZE) != 0) {
-        spiWritePage(_flash_page_addr & 0x0fffffff, _flash_cache);
-        _flash_page_addr = NO_CACHE;
-    }
+    // Disable interrupts and enable bit-bang mode on the SPI flash.
+    // This function is running from RAM -- otherwise enabling bitbang mode
+    // would crash the CPU as the program suddenly became an endless stream
+    // of `0xffffffff`.
+    bb_spi_irq_setie(0);
+    bb_spi_write((0 << PIN_CLK) | (1 << PIN_CS));
+    bb_spi_en(1);
+
+    bb_spi_write_page(_flash_page_addr & 0x00ffffff, (const uint8_t *)_flash_cache);
+
+    bb_spi_en(0);
+    bb_spi_irq_setie(1);
+
+   _flash_cache_dirty = false;
 }
 
 mp_uint_t supervisor_flash_read_blocks(uint8_t *dest, uint32_t block, uint32_t num_blocks) {
@@ -282,13 +297,17 @@ mp_uint_t supervisor_flash_write_blocks(const uint8_t *src, uint32_t lba, uint32
             supervisor_flash_flush();
 
             _flash_page_addr = page_addr;
+            _flash_cache_dirty = false;
 
             // Copy the current contents of the entire page into the cache.
             memcpy(_flash_cache, (void *)page_addr, FLASH_PAGE_SIZE);
         }
 
-        // Overwrite part or all of the page cache with the src data.
-        memcpy(_flash_cache + (addr & (FLASH_PAGE_SIZE - 1)), src, count * FILESYSTEM_BLOCK_SIZE);
+        // Overwrite part or all of the page cache with the src data, but only if it's changed.
+        if (_flash_cache_dirty || memcmp(_flash_cache + (addr & (FLASH_PAGE_SIZE - 1)), src, count * FILESYSTEM_BLOCK_SIZE)) {
+            memcpy(_flash_cache + (addr & (FLASH_PAGE_SIZE - 1)), src, count * FILESYSTEM_BLOCK_SIZE);
+            _flash_cache_dirty = true;
+        }
 
         // adjust for next run
         lba        += count;
