@@ -50,7 +50,7 @@ enum pin {
 
 #define NO_CACHE        0xffffffff
 
-static uint32_t  _flash_cache[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
+static uint8_t  _flash_cache[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
 static uint32_t _flash_page_addr = NO_CACHE;
 static bool     _flash_cache_dirty;
 // -------------------------------------------------------------------------
@@ -159,6 +159,15 @@ static int bb_spi_beginWrite(uint32_t addr, const void *v_data, unsigned int cou
     const uint8_t *data = v_data;
     unsigned int i;
 
+#if DEBUG
+    if (v_data < (const void *)_flash_cache) {
+        asm("ebreak");
+    }
+    if ((v_data+count) > (const void *)&_flash_cache[4096]) {
+        asm("ebreak");
+    }
+#endif
+
     // Enable Write-Enable Latch (WEL)
     bb_spi_begin();
     spi_single_tx(0x06);
@@ -192,6 +201,11 @@ static int bb_spi_is_busy(void) {
     return spi_read_status() & (1 << 0);
 }
 
+__attribute__((used))
+uint32_t page_write_log[128];
+__attribute__((used))
+uint32_t page_write_log_offset;
+
 __attribute__((section(".ramtext")))
 static void bb_spi_write_page(uint32_t flash_address, const uint8_t *data) {
     const uint32_t flash_address_end = flash_address + FLASH_PAGE_SIZE;
@@ -220,6 +234,9 @@ static void bb_spi_write_page(uint32_t flash_address, const uint8_t *data) {
         asm("ebreak");
         return;
     }
+
+    page_write_log[page_write_log_offset++] = flash_address;
+    if (page_write_log_offset > sizeof(page_write_log)/sizeof(*page_write_log)) page_write_log_offset=0;
 
     while (bb_spi_is_busy())
         ; // relax
