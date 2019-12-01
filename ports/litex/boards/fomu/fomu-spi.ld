@@ -26,43 +26,43 @@ SECTIONS
         . = ALIGN(4);
         _sdata = .;        /* create a global symbol at data start; used by startup code in order to initialise the .data section in RAM */
 
-        /* Place USB code into RAM, since it is called very frequently
-         * and should be performant.
-         */
-        *(.text.usbd_*)
-        *(.text.tud_*)
-        *(.text._tu_*)
-        *(.text.tu_*)
-        *(.text.usb_*)
-        *(.text.dcd_*)
-        *(.text.hal_*)
-        *(.text.cdcd_*)
-        *(.text.mscd_*)
+        /* These functions must be in RAM for USB to respond in time. */
+        *(.text.timer0_ev_pending_write)
+        *(.text.mp_parse)
+        *(.text.parse_compile_execute)
+        *(.text.cmp_lfn)
+        *(.text.qstr_find_strn)
+        *(.text.dcd_edpt_xfer)
+        *(.text.pop_rule)
+        *(.text.ff_wtoupper)
+        *(.text.dir_find)
+        *(.text.push_rule)
+        *(.text.csr_writel)
+        *(.text.csr_readl)
+        *(.text.autoreload_tick)
+        *(.text.filesystem_tick)
 
-        *(.text.flash_*)
-        *(.text.disk_*)
-        *(.text.run_*)
-        *(.text.supervisor_*)
-        *(.text.*_tick)
-        *(.text.maybe_*)
-        *(.text.mp_vfs_*)
-        *(.text.fat_*)
-        *(.text.dir_*)
-        *(.text.move_*)
-        *(.text.follow_*)
-        *(.text.tx_more_data*)
-        *(.text.main*)
-        *(.text.assert_*)
-        *(.text.serial_*)
-        *(.text.__*)
-        *(.text.mp_print*)
-        *(.text.fun_builtin_*)
-        *(.text.mp_execute*)
-        *(.text.mp_globals*)
-        *(.text.mp_builtin*)
-        *(.text.mp_help*)
-        *(.text.mp_stream*)
-        *(.text.stdio_*)
+        /* These two functions are called twice as often as any other function */
+        *(.text.mp_map_lookup)
+        *(.text.mp_execute_bytecode) /* Note: this function is 7kb */
+
+        /* These functions are hot, and placing them in ram greatly
+         * improves performance
+         */
+        *(.text.tud_cdc_n_write_flush)
+        *(.text.mp_load_method_maybe)
+        *(.text.mp_convert_member_lookup)
+        *(.text.irq_getmask)
+        *(.text.irq_setmask)
+        *(.text.tu_edpt_dir)
+        *(.text.tu_fifo_empty)
+        *(.text.irq_pending)
+        *(.text.tud_task)
+        *(.text.usb_background)
+        *(.text._osal_q_lock)
+        *(.text.osal_queue_receive)
+        *(.text.mp_obj_get_type)
+        *(.text.usbd_edpt_busy)
 
         *(.ramtext)        /* .text* sections (code) */
         *(.ramtext*)       /* .text* sections (code) */
