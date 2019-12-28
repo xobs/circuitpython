@@ -37,6 +37,8 @@
 #include "py/runtime.h"
 #include "lib/oofatfs/ff.h"
 
+#include "supervisor/usb.h"
+
 #include "csr.h"
 #include "irq.h"
 
@@ -298,6 +300,10 @@ mp_uint_t supervisor_flash_read_blocks(uint8_t *dest, uint32_t block, uint32_t n
     uint32_t src = lba2addr(block);
     memcpy(dest, (uint8_t*) src, FILESYSTEM_BLOCK_SIZE*num_blocks);
 
+    #if USB_AVAILABLE
+    usb_background();
+    #endif
+
     return 0;
 }
 
@@ -330,6 +336,10 @@ mp_uint_t supervisor_flash_write_blocks(const uint8_t *src, uint32_t lba, uint32
         lba        += count;
         src        += count * FILESYSTEM_BLOCK_SIZE;
         num_blocks -= count;
+
+        #if USB_AVAILABLE
+        usb_background();
+        #endif
     }
 
     return 0; // success
